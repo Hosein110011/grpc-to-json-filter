@@ -1,0 +1,18 @@
+syntax = "proto3";
+package example;
+
+option java_multiple_files = true;
+option java_package = "com.example.api_gateway.grpc";
+option java_outer_classname = "TestGrpc";
+
+service MyGrpcService {
+  rpc testGateway (TestRequest) returns (TestResponse);
+}
+
+message TestRequest {
+  string data = 1;
+}
+
+message TestResponse {
+  string result = 1;
+}
