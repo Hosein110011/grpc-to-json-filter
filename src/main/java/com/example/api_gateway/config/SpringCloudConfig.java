@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.io.PrintWriter;
+
 @Configuration
 public class SpringCloudConfig {
 
