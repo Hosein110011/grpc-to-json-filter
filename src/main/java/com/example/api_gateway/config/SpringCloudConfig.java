@@ -14,6 +14,6 @@ public class SpringCloudConfig {
     @Bean
     public GrpcToJsonFilter grpcToJsonFilter() {
         ObjectWriter objectWriter = new ObjectMapper().writer().withDefaultPrettyPrinter();
-        return new GrpcToJsonFilter(objectWriter);
+        return new GrpcToJsonFilter();
     }
 }

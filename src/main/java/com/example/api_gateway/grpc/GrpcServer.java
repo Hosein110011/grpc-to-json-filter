@@ -1,6 +1,8 @@
 package com.example.api_gateway.grpc;
 
 
+import com.example.api_gateway.filter.GrpcToJsonFilter;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 import io.grpc.stub.StreamObserver;
@@ -12,24 +14,25 @@ import org.springframework.web.client.RestTemplate;
 public class GrpcServer extends MyGrpcServiceGrpc.MyGrpcServiceImplBase {
 
     private final RestTemplate restTemplate = new RestTemplate();
-    public StreamObserver<TestResponse> streamObserver;
+
+    private GrpcToJsonFilter grpcToJsonFilter = new GrpcToJsonFilter();
 
     @Override
     public void testGateway(TestRequest request, StreamObserver<TestResponse> responseObserver) {
 
         try {
 
-            streamObserver = responseObserver;
+            TestResponse response = grpcToJsonFilter.filter(request);
 
-            System.out.println(JsonFormat.printer().print(request));
-
-            responseObserver.onNext(TestResponse.newBuilder().setResult(request.getData()).build());
+            responseObserver.onNext(response);
             responseObserver.onCompleted();
         } catch (InvalidProtocolBufferException e) {
             responseObserver.onError(io.grpc.Status.INVALID_ARGUMENT
                     .withDescription("Invalid JSON format")
                     .withCause(e)
                     .asRuntimeException());
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
         }
 
 
