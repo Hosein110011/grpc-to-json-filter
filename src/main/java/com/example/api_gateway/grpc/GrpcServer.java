@@ -12,11 +12,14 @@ import org.springframework.web.client.RestTemplate;
 public class GrpcServer extends MyGrpcServiceGrpc.MyGrpcServiceImplBase {
 
     private final RestTemplate restTemplate = new RestTemplate();
+    public StreamObserver<TestResponse> streamObserver;
 
     @Override
     public void testGateway(TestRequest request, StreamObserver<TestResponse> responseObserver) {
 
         try {
+
+            streamObserver = responseObserver;
 
             System.out.println(JsonFormat.printer().print(request));
 
