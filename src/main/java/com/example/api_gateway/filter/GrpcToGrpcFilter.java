@@ -9,23 +9,23 @@ import io.grpc.ManagedChannelBuilder;
 
 public class GrpcToGrpcFilter {
 
-    private ManagedChannel channel;
-    private MyGrpcServiceGrpc.MyGrpcServiceBlockingStub blockingStub;
-
-    public GrpcToGrpcFilter() {
-        this.channel = ManagedChannelBuilder.forAddress("localhost", 9091)
-                .usePlaintext()
-                .build();
-
-        this.blockingStub = MyGrpcServiceGrpc.newBlockingStub(channel);
-    }
-
-    public TestResponse filter(TestRequest request) {
-        TestResponse response = blockingStub.testGateway(request);
-
-        return response;
-
-    }
+//    private ManagedChannel channel;
+//    private MyGrpcServiceGrpc.MyGrpcServiceBlockingStub blockingStub;
+//
+//    public GrpcToGrpcFilter() {
+//        this.channel = ManagedChannelBuilder.forAddress("localhost", 9091)
+//                .usePlaintext()
+//                .build();
+//
+//        this.blockingStub = MyGrpcServiceGrpc.newBlockingStub(channel);
+//    }
+//
+//    public TestResponse filter(TestRequest request) {
+//        TestResponse response = blockingStub.testGateway(request);
+//
+//        return response;
+//
+//    }
 
 
 }

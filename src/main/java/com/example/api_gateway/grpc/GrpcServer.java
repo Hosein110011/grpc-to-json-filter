@@ -9,33 +9,32 @@ import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
+import reactor.core.publisher.Mono;
 
 @GrpcService
-public class GrpcServer extends MyGrpcServiceGrpc.MyGrpcServiceImplBase {
+public class GrpcServer extends ReactorMyGrpcServiceGrpc.MyGrpcServiceImplBase {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
     private GrpcToJsonFilter grpcToJsonFilter = new GrpcToJsonFilter();
 
     @Override
-    public void testGateway(TestRequest request, StreamObserver<TestResponse> responseObserver) {
+    public Mono<TestResponse> testGateway(Mono<TestRequest> request) {
 
-        try {
 
-            TestResponse response = grpcToJsonFilter.filter(request);
+//            TestResponse response = grpcToJsonFilter.filter(request);
 
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
-        } catch (InvalidProtocolBufferException e) {
-            responseObserver.onError(io.grpc.Status.INVALID_ARGUMENT
-                    .withDescription("Invalid JSON format")
-                    .withCause(e)
-                    .asRuntimeException());
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
-        }
 
+        return
+                request
+                        .map(TestRequest::getData)
+                        .map(data -> {
+                            TestResponse response = TestResponse.newBuilder().setResult(data).build();
+                            return response;
+                        });
 
     }
+
+
 
 }
