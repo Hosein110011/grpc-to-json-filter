@@ -1,12 +1,11 @@
 package com.example.api_gateway.config;
 
+import com.example.api_gateway.filter.GrpcFilter;
 import com.example.api_gateway.filter.GrpcToJsonFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.io.PrintWriter;
 
 @Configuration
 public class SpringCloudConfig {

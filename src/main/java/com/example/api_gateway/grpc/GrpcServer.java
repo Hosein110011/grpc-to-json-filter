@@ -1,13 +1,9 @@
 package com.example.api_gateway.grpc;
 
 
+import com.example.api_gateway.filter.GrpcFilter;
 import com.example.api_gateway.filter.GrpcToJsonFilter;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.util.JsonFormat;
-import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 import reactor.core.publisher.Mono;
 

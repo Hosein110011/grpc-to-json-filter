@@ -1,6 +1,6 @@
 package com.example.api_gateway;
 
-import com.example.api_gateway.entity.TestRequestEntity;
+import com.example.api_gateway.filter.GrpcFilter;
 import com.example.api_gateway.filter.GrpcToJsonFilter;
 import com.example.api_gateway.grpc.GrpcServer;
 import com.example.api_gateway.grpc.MyGrpcServiceGrpc;
@@ -10,41 +10,20 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
-import io.grpc.stub.StreamObserver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.http.server.reactive.ServerHttpResponse;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
-import reactor.netty.http.client.HttpClient;
 
-import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import static reactor.netty.Metrics.UNKNOWN;
+import java.util.*;
 
 @SpringBootApplication
 public class ApiGatewayApplication extends MyGrpcServiceGrpc.MyGrpcServiceImplBase{
@@ -156,6 +135,9 @@ public class ApiGatewayApplication extends MyGrpcServiceGrpc.MyGrpcServiceImplBa
                                     }
                                     System.out.println(jsonRequest);
 
+//									exchange.getResponse().getHeaders().set("Content-Type", "application/grpc");
+//									exchange.getResponse().getHeaders().set("grpc-message", "100");
+
 
 
 //                                    exchange.getResponse().writeWith(Mono.just(exchange.getResponse().bufferFactory().wrap(Arrays.copyOfRange(bytes, 0, 5))));
@@ -163,21 +145,23 @@ public class ApiGatewayApplication extends MyGrpcServiceGrpc.MyGrpcServiceImplBa
 									return Mono.just(jsonRequest);
 								})
 								.removeResponseHeader("Date")
-								.removeResponseHeader("Content-Type")
-								.addResponseHeader("content-type", "application/grpc")
-//								.addResponseHeader("Content-Type", "application/proto")
-//								.addResponseHeader("host","localhost:7000")
+//								.removeResponseHeader("Content-Type")
+//								.addResponseHeader("content-type", "application/proto")
+//								.addResponseHeader("Content-Type", "application/grpc")
+//								.addResponseHeader("grpc-message","100")
 //								.addResponseHeader("x-http2-scheme","http")
 //								.addResponseHeader("te","trailers")
 //								.addResponseHeader("user-agent","grpc-java-netty/1.69.0")
 //								.addResponseHeader("grpc-accept-encoding","gzip")
-								.addResponseHeader("x-http2-stream-id","3")
-								.addResponseHeader("grpc-status", "0")
+//								.addResponseHeader("x-http2-stream-id","3")
+//								.addResponseHeader("grpc-status", "0")
 								.modifyResponseBody(String.class, DataBuffer.class, (exchange, body) -> {
 									System.out.println("REQ " + exchange.getRequest().getHeaders());
 									System.out.println("RES " + exchange.getResponse().getHeaders());
                                     TestResponse response;
 									ObjectMapper objectMapper = new ObjectMapper();
+
+									System.out.println("sout get remote address " + exchange.getRequest().getRemoteAddress());
 
 									var grpcService = NettyServerBuilder.forAddress(exchange.getRequest().getRemoteAddress()).addService(grpcServer).build();
 
@@ -215,32 +199,49 @@ public class ApiGatewayApplication extends MyGrpcServiceGrpc.MyGrpcServiceImplBa
 									buf.putInt(payloadSize);
 									buf.put(bytes);
 
-									byte[] anotherBytes = new byte[] {0,0,0,0,35};
-
-									byte[] newByte = concatWithArrayCopy(anotherBytes, bytes);
+//									byte[] anotherBytes = new byte[] {0,0,0,0,35};
+//
+//									byte[] newByte = concatWithArrayCopy(anotherBytes, bytes);
 
 									System.out.println("ZZZZZZZZZZz " + Arrays.toString(buf.array()));
 
+									exchange.getResponse().getHeaders().clearContentHeaders();
 
-									exchange.getResponse().getHeaders().add("content-type", "application/grpc");
+									exchange.getResponse().beforeCommit(() -> {
+//										exchange.getResponse().getHeaders().add("grpc-status", "0");
+										exchange.getResponse().getHeaders().add("content-type", "application/grpc");
+										exchange.getResponse().getHeaders().add("trailer", "grpc-status, grpc-message");
+										return Mono.empty();
+									});
+
 
 									DataBuffer dataBuffer = new DefaultDataBufferFactory().wrap(buf.array());
-									return Mono.just(dataBuffer);
-//									byte[] prefix = new byte[5];
-//									prefix[0] = 0;
-//									int messageLength = response.toByteArray().length;
-//									prefix[1] = (byte) ((messageLength >> 24) & 0xFF);
-//									prefix[2] = (byte) ((messageLength >> 16) & 0xFF);
-//									prefix[3] = (byte) ((messageLength >> 8) & 0xFF);
-//									prefix[4] = (byte) (messageLength & 0xFF);
-//
-//									byte[] grpcResponse = new byte[prefix.length + response.toByteArray().length];
-//									System.arraycopy(prefix, 0, grpcResponse, 0, prefix.length);
-//									System.arraycopy(response.toByteArray(), 0, grpcResponse, prefix.length, response.toByteArray().length);
-//
-//									DataBuffer dataBuffer = new DefaultDataBufferFactory().wrap(grpcResponse);
-//									return Mono.just(dataBuffer);
-                                }))
+
+									return Mono.just(dataBuffer)
+											.doOnTerminate(() -> {
+												exchange.getResponse().getHeaders().add("grpc-status", "0");
+												exchange.getResponse().getHeaders().add("grpc-message", "");
+												System.out.println("Sending EOS after data is sent");
+											});
+
+////									byte[] prefix = new byte[5];
+////									prefix[0] = 0;
+////									int messageLength = response.toByteArray().length;
+////									prefix[1] = (byte) ((messageLength >> 24) & 0xFF);
+////									prefix[2] = (byte) ((messageLength >> 16) & 0xFF);
+////									prefix[3] = (byte) ((messageLength >> 8) & 0xFF);
+////									prefix[4] = (byte) (messageLength & 0xFF);
+////
+////									byte[] grpcResponse = new byte[prefix.length + response.toByteArray().length];
+////									System.arraycopy(prefix, 0, grpcResponse, 0, prefix.length);
+////									System.arraycopy(response.toByteArray(), 0, grpcResponse, prefix.length, response.toByteArray().length);
+////
+////									DataBuffer dataBuffer = new DefaultDataBufferFactory().wrap(grpcResponse);
+////									return Mono.just(dataBuffer);
+                                })
+
+								.removeResponseHeader("Content-Length")
+						)
 ////								.filter(grpcToJsonFilter.apply(grpcToJsonFilter.newConfig())))\
 						.uri("http://localhost:8088"))
 				.build();
