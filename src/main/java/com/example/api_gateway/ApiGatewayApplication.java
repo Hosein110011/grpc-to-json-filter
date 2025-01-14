@@ -1,6 +1,6 @@
 package com.example.api_gateway;
 
-import com.example.api_gateway.filter.GrpcFilter;
+//import com.example.api_gateway.filter.GrpcFilter;
 import com.example.api_gateway.filter.GrpcToJsonFilter;
 import com.example.api_gateway.grpc.GrpcServer;
 import com.example.api_gateway.grpc.MyGrpcServiceGrpc;
@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
+import io.grpc.BindableService;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -163,7 +164,7 @@ public class ApiGatewayApplication extends MyGrpcServiceGrpc.MyGrpcServiceImplBa
 
 									System.out.println("sout get remote address " + exchange.getRequest().getRemoteAddress());
 
-									var grpcService = NettyServerBuilder.forAddress(exchange.getRequest().getRemoteAddress()).addService(grpcServer).build();
+									var grpcService = NettyServerBuilder.forAddress(exchange.getRequest().getRemoteAddress()).addService((BindableService) grpcServer).build();
 
 									String prettyResp;
                                     try {
@@ -219,8 +220,7 @@ public class ApiGatewayApplication extends MyGrpcServiceGrpc.MyGrpcServiceImplBa
 
 									return Mono.just(dataBuffer)
 											.doOnTerminate(() -> {
-												exchange.getResponse().getHeaders().add("grpc-status", "0");
-												exchange.getResponse().getHeaders().add("grpc-message", "");
+
 												System.out.println("Sending EOS after data is sent");
 											});
 
@@ -240,7 +240,7 @@ public class ApiGatewayApplication extends MyGrpcServiceGrpc.MyGrpcServiceImplBa
 ////									return Mono.just(dataBuffer);
                                 })
 
-								.removeResponseHeader("Content-Length")
+//								.removeResponseHeader("Content-Length")
 						)
 ////								.filter(grpcToJsonFilter.apply(grpcToJsonFilter.newConfig())))\
 						.uri("http://localhost:8088"))

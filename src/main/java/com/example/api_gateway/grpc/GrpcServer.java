@@ -1,7 +1,7 @@
 package com.example.api_gateway.grpc;
 
 
-import com.example.api_gateway.filter.GrpcFilter;
+//import com.example.api_gateway.filter.GrpcFilter;
 import com.example.api_gateway.filter.GrpcToJsonFilter;
 import net.devh.boot.grpc.server.service.GrpcService;
 import org.springframework.web.client.RestTemplate;
