@@ -2,7 +2,7 @@ package com.example.api_gateway;
 
 //import com.example.api_gateway.filter.GrpcFilter;
 import com.example.api_gateway.exception.ExceptionHandler;
-import com.example.api_gateway.filter.GrpcToJsonFilter;
+import com.example.api_gateway.filter.GrpcHeaderFilter;
 import com.example.api_gateway.grpc.GrpcServer;
 import com.example.api_gateway.grpc.MyGrpcServiceGrpc;
 import com.example.api_gateway.grpc.TestRequest;
@@ -12,12 +12,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 import io.grpc.BindableService;
-import io.grpc.netty.GrpcHttp2ConnectionHandler;
+import io.grpc.Metadata;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
-import net.devh.boot.grpc.server.error.GrpcExceptionResponseHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.headers.GRPCResponseHeadersFilter;
 import org.springframework.cloud.gateway.route.RouteLocator;
 import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
@@ -31,11 +31,13 @@ import reactor.core.publisher.Mono;
 import java.nio.ByteBuffer;
 import java.util.*;
 
+import static reactor.core.publisher.SignalType.ON_COMPLETE;
+
 @SpringBootApplication
 public class ApiGatewayApplication extends MyGrpcServiceGrpc.MyGrpcServiceImplBase{
 
 	@Autowired
-	private GrpcToJsonFilter grpcToJsonFilter;
+	private GrpcHeaderFilter grpcHeaderFilter;
 
 	@Autowired
 	GrpcServer grpcServer;
@@ -46,6 +48,11 @@ public class ApiGatewayApplication extends MyGrpcServiceGrpc.MyGrpcServiceImplBa
 
 	@Bean
 	RouteLocator testRouteLocator(RouteLocatorBuilder routeLocatorBuilder, ExceptionHandler exceptionHandler) {
+		Metadata.Key<String> myHeaderKey = Metadata.Key.of("grpc-status", Metadata.ASCII_STRING_MARSHALLER);
+
+		Metadata metadata = new Metadata();
+
+		metadata.put(myHeaderKey, "0");
 //		ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 9091)
 //				.usePlaintext()
 //				.build();
@@ -164,6 +171,9 @@ public class ApiGatewayApplication extends MyGrpcServiceGrpc.MyGrpcServiceImplBa
 								.modifyResponseBody(String.class, DataBuffer.class, (exchange, body) -> {
 									System.out.println("REQ " + exchange.getRequest().getHeaders());
 									System.out.println("RES " + exchange.getResponse().getHeaders());
+
+
+
                                     TestResponse response;
 									ObjectMapper objectMapper = new ObjectMapper();
 
@@ -211,36 +221,48 @@ public class ApiGatewayApplication extends MyGrpcServiceGrpc.MyGrpcServiceImplBa
 
 									System.out.println("ZZZZZZZZZZz " + Arrays.toString(buf.array()));
 
+
+
+
+//									exchange.getResponse().beforeCommit(() -> {
+////										System.out.println("neutral " + exchange.getResponse().getHeaders());
+//
+//
+//										System.out.println("brfore headers: " + exchange.getResponse().getHeaders());
+//
+//
+									GRPCResponseHeadersFilter responseHeadersFilter = new GRPCResponseHeadersFilter();
+
+									System.out.println("H2C: " + exchange.getResponse().getHeaders());
+//
+//
 									exchange.getResponse().getHeaders().clearContentHeaders();
-
-									exchange.getResponse().getHeaders().add("Content-Type","application/grpc");
-
-
-									exchange.getResponse().beforeCommit(() -> {
-//										System.out.println("neutral " + exchange.getResponse().getHeaders());
-
-
-										System.out.println("brfore headers: " + exchange.getResponse().getHeaders());
-
-
-										GRPCResponseHeadersFilter responseHeadersFilter = new GRPCResponseHeadersFilter();
-
-
-
-										HttpHeaders headers = responseHeadersFilter.filter(exchange.getResponse().getHeaders(), exchange);
-
-										exchange.getResponse().getHeaders().putAll(headers);
-
-									exchange.getResponse().getHeaders().add("grpc-status","0");
-									exchange.getResponse().getHeaders().add("grpc-message","OK");
-
+//
+            						exchange.getResponse().getHeaders().add("Content-Type","application/grpc");
+//
+									HttpHeaders headers = responseHeadersFilter.filter(exchange.getResponse().getHeaders(), exchange);
+//
+									exchange.getResponse().getHeaders().putAll(headers);
+//
+//										exchange.getResponse().getHeaders().add("grpc-encoding", "identity");
+//										exchange.getResponse().getHeaders().add("grpc-accept-encoding", "gzip");
+//										exchange.getResponse().getHeaders().add("status", "200");
+//
+//										exchange.getResponse().getHeaders().add("grpc-status","0");
+//										exchange.getResponse().getHeaders().add("grpc-message","OK");
+//
 										System.out.println("after headers: " + exchange.getResponse().getHeaders());
-
-										return Mono.empty();
-									});
+//
+//										return Mono.empty();
+//									});
 
 
 									DataBuffer dataBuffer = new DefaultDataBufferFactory().wrap(buf.array());
+
+									exchange.getResponse().beforeCommit(() -> {
+										exchange.getResponse().getHeaders().add("X-EndStream-Control", "false");
+										return Mono.empty();
+									});
 
 									return Mono.just(dataBuffer);
 
@@ -258,9 +280,10 @@ public class ApiGatewayApplication extends MyGrpcServiceGrpc.MyGrpcServiceImplBa
 ////
 ////									DataBuffer dataBuffer = new DefaultDataBufferFactory().wrap(grpcResponse);
 ////									return Mono.just(dataBuffer);
+
                                 })
 //										.addResponseHeader("content-type", "application/grpc")
-
+//										.filter(grpcHeaderFilter.apply(grpcHeaderFilter.newConfig()))
 //								.removeResponseHeader("Content-Length")
 						)
 ////								.filter(grpcToJsonFilter.apply(grpcToJsonFilter.newConfig())))\

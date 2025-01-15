@@ -41,13 +41,15 @@ public class GrpcFilter implements GlobalFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
 
+//        exchange.getResponse().getHeaders().add("grpc-status", "0");
 
-//        System.out.println("headers: " + headers);
-        //        try {
-//            Thread.sleep(10000);
-//        } catch (InterruptedException e) {
-//            throw new RuntimeException(e);
-//        }
+        chain.filter(exchange);
+
         return chain.filter(exchange);
+
+//        return chain.filter(exchange).then(Mono.fromRunnable(() -> {
+//            ServerHttpResponse response = exchange.getResponse();
+//            response.getHeaders().add("grpc-status", "0");
+//        }));
     }
 }
