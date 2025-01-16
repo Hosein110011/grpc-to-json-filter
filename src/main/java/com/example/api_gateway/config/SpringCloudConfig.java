@@ -9,6 +9,9 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import io.grpc.Channel;
 import io.grpc.netty.shaded.io.netty.buffer.Unpooled;
 import io.grpc.netty.shaded.io.netty.handler.codec.http2.*;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http2.Http2ConnectionHandler;
@@ -30,33 +33,17 @@ public class SpringCloudConfig {
         return new GRPCResponseHeadersFilter();
     }
 
-    @Bean
-    public NettyServerCustomizer nettyServerCustomizer() {
-        return server -> server.doOnChannelInit((context, channel, address) -> {
-            Http2Headers headers = new DefaultHttp2Headers();
-            headers.add("grpc-status", "0");
-
-            System.out.println("channel id : " + context.currentContext());
-
-            channel.writeAndFlush(new DefaultHttp2HeadersFrame(headers, false))
-                    .addListener(future -> {
-                        if (future.isSuccess()) {
-                            System.out.println("headers sent successfully1!!");
-                        } else {
-                            System.err.println("ffffff");
-                            future.cause().printStackTrace();
-                        }
-                    });
-
-            channel.writeAndFlush(new DefaultHttp2DataFrame(Unpooled.EMPTY_BUFFER, true))
-                    .addListener(future -> {
-                        if (future.isSuccess()) {
-                            System.out.println("stream ended success");
-                        } else {
-                            System.err.println("failed to end stream:");
-                            future.cause().printStackTrace();
-                        }
-                    });
-        });
-    }
+//    @Bean
+//    public NettyServerCustomizer nettyServerCustomizer() {
+//        return server -> {
+//            Http2Connection connection = new DefaultHttp2Connection(true);
+//            Http2ConnectionDecoder decoder = new DefaultHttp2ConnectionDecoder(connection, new Http2FrameListenerAdapter());
+//            Http2ConnectionEncoder encoder = new DefaultHttp2ConnectionEncoder(connection, new DefaultHttp2FrameWriter());
+//            Http2Settings settings = new Http2Settings();
+//
+//            Http2FrameCodec codec = new Http2FrameCodec(decoder, encoder, settings, true, false);
+//            server.pipeline().addLast("http2Codec", codec);
+//            return server;
+//        };
+//    }
 }

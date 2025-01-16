@@ -43,7 +43,7 @@ public class GrpcFilter implements GlobalFilter {
 
 //        exchange.getResponse().getHeaders().add("grpc-status", "0");
 
-        chain.filter(exchange);
+//        chain.filter(exchange);
 
         return chain.filter(exchange);
 

@@ -7,6 +7,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.cloud.gateway.filter.factory.GatewayFilterFactory;
+import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -14,11 +15,12 @@ import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-public class GrpcHeaderFilter extends AbstractGatewayFilterFactory<GrpcHeaderFilter.Config>  {
+public class GrpcHeaderFilter extends AbstractGatewayFilterFactory<GrpcHeaderFilter.Config> implements Ordered {
 
     public GrpcHeaderFilter() {
         super(Config.class);
@@ -38,12 +40,20 @@ public class GrpcHeaderFilter extends AbstractGatewayFilterFactory<GrpcHeaderFil
 //            });
 //        };
         return (ServerWebExchange exchange, GatewayFilterChain chain) -> {
-//            exchange.getResponse().getHeaders().add("grpc-status", "0");
-//            exchange.getResponse().setComplete();
-            return chain.filter(exchange);
+
+            return chain.filter(exchange).doFinally(signalType -> {
+                exchange.getResponse().setComplete();
+                exchange.getResponse().getHeaders().add("grpc-status", "0");
+                System.out.println("Final operation, signal type: " + signalType);
+            });
         };
     }
 
     public static class Config {}
+
+    @Override
+    public int getOrder() {
+        return -1;
+    }
 
 }

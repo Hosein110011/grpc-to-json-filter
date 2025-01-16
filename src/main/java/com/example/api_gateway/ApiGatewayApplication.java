@@ -26,6 +26,9 @@ import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.util.MultiValueMap;
+import org.springframework.util.MultiValueMapAdapter;
 import reactor.core.publisher.Mono;
 
 import java.nio.ByteBuffer;
@@ -265,6 +268,23 @@ public class ApiGatewayApplication extends MyGrpcServiceGrpc.MyGrpcServiceImplBa
 									});
 
 									return Mono.just(dataBuffer);
+//									.doFinally(signalType -> {
+////										exchange.getResponse().getHeaders().add("grpc-status", "0");
+//										ServerHttpResponse response1 = exchange.getResponse();
+//										System.out.println(response1.getHeaders());
+//										exchange.getResponse().beforeCommit(() -> {
+//											exchange.getResponse().getHeaders().add("X-EndStream-Control", "false");
+//											exchange.getResponse().getHeaders().add("grpc-status", "0");
+//											exchange.getResponse().setComplete();
+//											return Mono.empty();
+//										});
+//										Map map = new HashMap();
+//										map.put("grpc-status", "0");
+//										MultiValueMap multiValueMap = MultiValueMap.fromMultiValue(map);
+//										HttpHeaders httpHeaders = HttpHeaders.readOnlyHttpHeaders(multiValueMap);
+//										exchange.getResponse().getHeaders().putAll(httpHeaders);
+//										System.out.println("Final operation, signal type: " + signalType);
+//									});
 
 ////									byte[] prefix = new byte[5];
 ////									prefix[0] = 0;
@@ -286,7 +306,7 @@ public class ApiGatewayApplication extends MyGrpcServiceGrpc.MyGrpcServiceImplBa
 //										.filter(grpcHeaderFilter.apply(grpcHeaderFilter.newConfig()))
 //								.removeResponseHeader("Content-Length")
 						)
-////								.filter(grpcToJsonFilter.apply(grpcToJsonFilter.newConfig())))\
+//								.filter(grpcToJsonFilter.apply(grpcToJsonFilter.newConfig())))\
 						.uri("http://localhost:8088"))
 				.build();
 	}
