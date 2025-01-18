@@ -29,6 +29,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.MultiValueMapAdapter;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.nio.ByteBuffer;
@@ -163,7 +164,7 @@ public class ApiGatewayApplication extends MyGrpcServiceGrpc.MyGrpcServiceImplBa
 								.removeResponseHeader("Date")
 //								.removeResponseHeader("Content-Type")
 //								.addResponseHeader("content-type", "application/proto")
-//								.addResponseHeader("Content-Type", "application/grpc")
+								.addResponseHeader("Content-Type", "application/grpc")
 //								.addResponseHeader("grpc-message","100")
 //								.addResponseHeader("x-http2-scheme","http")
 //								.addResponseHeader("te","trailers")
@@ -171,103 +172,105 @@ public class ApiGatewayApplication extends MyGrpcServiceGrpc.MyGrpcServiceImplBa
 //								.addResponseHeader("grpc-accept-encoding","gzip")
 //								.addResponseHeader("x-http2-stream-id","3")
 //								.addResponseHeader("grpc-status", "0")
-								.modifyResponseBody(String.class, DataBuffer.class, (exchange, body) -> {
-									System.out.println("REQ " + exchange.getRequest().getHeaders());
-									System.out.println("RES " + exchange.getResponse().getHeaders());
-
-
-
-                                    TestResponse response;
-									ObjectMapper objectMapper = new ObjectMapper();
-
-									System.out.println("sout get remote address " + exchange.getRequest().getRemoteAddress());
-
-									var grpcService = NettyServerBuilder.forAddress(exchange.getRequest().getRemoteAddress()).addService((BindableService) grpcServer).build();
-
-									String prettyResp;
-                                    try {
-										Object jsonObject = objectMapper.readValue(body, Object.class);
-                                        prettyResp = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonObject);
-                                    } catch (JsonProcessingException e) {
-                                        throw new RuntimeException(e);
-                                    }
-                                    System.out.println("ffff : " + prettyResp);
-//									byte[] actualByteResponse = Arrays.copyOfRange(body.getBytes(), 5, body.getBytes().length);
-
-                                    try {
-										TestResponse.Builder builder = TestResponse.newBuilder();
-										JsonFormat.parser().merge(prettyResp, builder);
-										TestResponse message = builder.build();
-										response = message;
-										System.out.println("gGGGG : " + message);
-                                    } catch (InvalidProtocolBufferException e) {
-                                        throw new RuntimeException(e);
-                                    }
-
-                                    byte[] bytes;
-
-                                    bytes = response.toByteArray();
-
-									System.out.println("Avale khat " + Arrays.toString(bytes));
-
-									System.out.println(bytes.length);
-
-									int payloadSize = bytes.length;
-									ByteBuffer buf = ByteBuffer.allocate(payloadSize + 5);
-									buf.put((byte) 0);
-									buf.putInt(payloadSize);
-									buf.put(bytes);
-
-//									byte[] anotherBytes = new byte[] {0,0,0,0,35};
+								.modifyResponseBody(DataBuffer.class, DataBuffer.class, (exchange, body) -> {
+									return Mono.just(body);
+										})
+//									System.out.println("REQ " + exchange.getRequest().getHeaders());
+//									System.out.println("RES " + exchange.getResponse().getHeaders());
 //
-//									byte[] newByte = concatWithArrayCopy(anotherBytes, bytes);
-
-									System.out.println("ZZZZZZZZZZz " + Arrays.toString(buf.array()));
-
-
-
-
+//
+//
+//                                    TestResponse response;
+//									ObjectMapper objectMapper = new ObjectMapper();
+//
+//									System.out.println("sout get remote address " + exchange.getRequest().getRemoteAddress());
+//
+//									var grpcService = NettyServerBuilder.forAddress(exchange.getRequest().getRemoteAddress()).addService((BindableService) grpcServer).build();
+//
+//									String prettyResp;
+//                                    try {
+//										Object jsonObject = objectMapper.readValue(body, Object.class);
+//                                        prettyResp = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonObject);
+//                                    } catch (JsonProcessingException e) {
+//                                        throw new RuntimeException(e);
+//                                    }
+//                                    System.out.println("ffff : " + prettyResp);
+////									byte[] actualByteResponse = Arrays.copyOfRange(body.getBytes(), 5, body.getBytes().length);
+//
+//                                    try {
+//										TestResponse.Builder builder = TestResponse.newBuilder();
+//										JsonFormat.parser().merge(prettyResp, builder);
+//										TestResponse message = builder.build();
+//										response = message;
+//										System.out.println("gGGGG : " + message);
+//                                    } catch (InvalidProtocolBufferException e) {
+//                                        throw new RuntimeException(e);
+//                                    }
+//
+//                                    byte[] bytes;
+//
+//                                    bytes = response.toByteArray();
+//
+//									System.out.println("Avale khat " + Arrays.toString(bytes));
+//
+//									System.out.println(bytes.length);
+//
+//									int payloadSize = bytes.length;
+//									ByteBuffer buf = ByteBuffer.allocate(payloadSize + 5);
+//									buf.put((byte) 0);
+//									buf.putInt(payloadSize);
+//									buf.put(bytes);
+//
+////									byte[] anotherBytes = new byte[] {0,0,0,0,35};
+////
+////									byte[] newByte = concatWithArrayCopy(anotherBytes, bytes);
+//
+//									System.out.println("ZZZZZZZZZZz " + Arrays.toString(buf.array()));
+//
+//
+//
+//
+////									exchange.getResponse().beforeCommit(() -> {
+//////										System.out.println("neutral " + exchange.getResponse().getHeaders());
+////
+////
+////										System.out.println("brfore headers: " + exchange.getResponse().getHeaders());
+////
+////
+//									GRPCResponseHeadersFilter responseHeadersFilter = new GRPCResponseHeadersFilter();
+//
+//									System.out.println("H2C: " + exchange.getResponse().getHeaders());
+////
+////
+//									exchange.getResponse().getHeaders().clearContentHeaders();
+////
+//            						exchange.getResponse().getHeaders().add("Content-Type","application/grpc");
+////
+//									HttpHeaders headers = responseHeadersFilter.filter(exchange.getResponse().getHeaders(), exchange);
+////
+//									exchange.getResponse().getHeaders().putAll(headers);
+////
+////										exchange.getResponse().getHeaders().add("grpc-encoding", "identity");
+////										exchange.getResponse().getHeaders().add("grpc-accept-encoding", "gzip");
+////										exchange.getResponse().getHeaders().add("status", "200");
+////
+////										exchange.getResponse().getHeaders().add("grpc-status","0");
+////										exchange.getResponse().getHeaders().add("grpc-message","OK");
+////
+//										System.out.println("after headers: " + exchange.getResponse().getHeaders());
+////
+////										return Mono.empty();
+////									});
+//
+//
+//									DataBuffer dataBuffer = new DefaultDataBufferFactory().wrap(buf.array());
+//
 //									exchange.getResponse().beforeCommit(() -> {
-////										System.out.println("neutral " + exchange.getResponse().getHeaders());
-//
-//
-//										System.out.println("brfore headers: " + exchange.getResponse().getHeaders());
-//
-//
-									GRPCResponseHeadersFilter responseHeadersFilter = new GRPCResponseHeadersFilter();
-
-									System.out.println("H2C: " + exchange.getResponse().getHeaders());
-//
-//
-									exchange.getResponse().getHeaders().clearContentHeaders();
-//
-            						exchange.getResponse().getHeaders().add("Content-Type","application/grpc");
-//
-									HttpHeaders headers = responseHeadersFilter.filter(exchange.getResponse().getHeaders(), exchange);
-//
-									exchange.getResponse().getHeaders().putAll(headers);
-//
-//										exchange.getResponse().getHeaders().add("grpc-encoding", "identity");
-//										exchange.getResponse().getHeaders().add("grpc-accept-encoding", "gzip");
-//										exchange.getResponse().getHeaders().add("status", "200");
-//
-//										exchange.getResponse().getHeaders().add("grpc-status","0");
-//										exchange.getResponse().getHeaders().add("grpc-message","OK");
-//
-										System.out.println("after headers: " + exchange.getResponse().getHeaders());
-//
+//										exchange.getResponse().getHeaders().add("X-EndStream-Control", "false");
 //										return Mono.empty();
 //									});
-
-
-									DataBuffer dataBuffer = new DefaultDataBufferFactory().wrap(buf.array());
-
-									exchange.getResponse().beforeCommit(() -> {
-										exchange.getResponse().getHeaders().add("X-EndStream-Control", "false");
-										return Mono.empty();
-									});
-
-									return Mono.just(dataBuffer);
+//
+//									return Flux.just(dataBuffer).single();
 //									.doFinally(signalType -> {
 ////										exchange.getResponse().getHeaders().add("grpc-status", "0");
 //										ServerHttpResponse response1 = exchange.getResponse();
@@ -301,9 +304,9 @@ public class ApiGatewayApplication extends MyGrpcServiceGrpc.MyGrpcServiceImplBa
 ////									DataBuffer dataBuffer = new DefaultDataBufferFactory().wrap(grpcResponse);
 ////									return Mono.just(dataBuffer);
 
-                                })
+//                                })
 //										.addResponseHeader("content-type", "application/grpc")
-//										.filter(grpcHeaderFilter.apply(grpcHeaderFilter.newConfig()))
+//										.filter(new CustomHeaderResponseGatewayFilterFactory().apply(new CustomHeaderResponseGatewayFilterFactory.Config()))
 //								.removeResponseHeader("Content-Length")
 						)
 //								.filter(grpcToJsonFilter.apply(grpcToJsonFilter.newConfig())))\
