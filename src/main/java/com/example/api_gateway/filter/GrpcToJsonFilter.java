@@ -1,53 +1,97 @@
 package com.example.api_gateway.filter;
 
-
-import com.example.api_gateway.grpc.TestRequest;
 import com.example.api_gateway.grpc.TestResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.web.client.RestTemplate;
+import org.reactivestreams.Publisher;
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.core.Ordered;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.core.io.buffer.DataBufferFactory;
+import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.http.server.reactive.ServerHttpResponseDecorator;
+import org.springframework.stereotype.Component;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 
-public class GrpcToJsonFilter {
+@Component
+public class GrpcToJsonFilter implements GlobalFilter, Ordered {
 
-    private RestTemplate restTemplate = new RestTemplate();
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        ServerHttpResponse originalResponse = exchange.getResponse();
+        DataBufferFactory bufferFactory = originalResponse.bufferFactory();
 
-    public TestResponse filter(TestRequest request) throws InvalidProtocolBufferException, JsonProcessingException {
-
-        String jsonRequest;
-        try {
-            jsonRequest = JsonFormat.printer().print(request);
-        } catch (InvalidProtocolBufferException e) {
-            throw new RuntimeException(e);
+        if (!originalResponse.getHeaders().containsKey("Trailer")) {
+            return chain.filter(exchange);
         }
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        ServerHttpResponseDecorator decoratedResponse = new ServerHttpResponseDecorator(originalResponse) {
+            @Override
+            public Mono<Void> writeWith(Publisher<? extends DataBuffer> body) {
+                Flux<? extends DataBuffer> fluxBody = Flux.from(body);
 
-        HttpEntity<String> requestEntity = new HttpEntity<>(jsonRequest, headers);
+                return super.writeWith(
+                        fluxBody.map(dataBuffer -> {
+                            byte[] bytes = new byte[dataBuffer.readableByteCount()];
+                            dataBuffer.read(bytes);
+                            DataBufferUtils.release(dataBuffer);
 
-        String jsonResponse = restTemplate.postForObject(
-                "http://localhost:8088/test-grpc/example.MyGrpcService/testGateway",
-                requestEntity,
-                String.class
-        );
+                            ObjectMapper objectMapper = new ObjectMapper();
 
-        System.out.println("json resp  " + jsonResponse);
+                            String prettyResp;
+                                    try {
+										Object jsonObject = objectMapper.readValue(bytes, Object.class);
+                                        prettyResp = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonObject);
+                                    } catch (JsonProcessingException e) {
+                                        throw new RuntimeException(e);
+                                    } catch (IOException e) {
+                                        throw new RuntimeException(e);
+                                    }
 
-        ObjectMapper mapper = new ObjectMapper();
+                            TestResponse response;
 
-        JsonNode jsonNode = mapper.readTree(jsonResponse);
+                            try {
+								TestResponse.Builder builder = TestResponse.newBuilder();
+                                JsonFormat.parser().merge(prettyResp, builder);
+								response = builder.build();
+                            } catch (InvalidProtocolBufferException e) {
+                                throw new RuntimeException(e);
+                            }
 
-        TestResponse response = TestResponse.newBuilder().setResult(jsonNode.get("result").toString()).build();
+                            ByteBuffer buf = getStructuredGrpcResponse(response);
 
-        System.out.println("main " + response.getResult());
+                            return bufferFactory.wrap(buf.array());
 
-        return response;
+                        })
+                );
+            }
+        };
+
+        return chain.filter(exchange.mutate().response(decoratedResponse).build());
     }
 
+    @Override
+    public int getOrder() {
+        return -1;
+    }
+
+    private ByteBuffer getStructuredGrpcResponse(TestResponse response) {
+        byte[] byteResponse = response.toByteArray();
+
+        int payloadSize = byteResponse.length;
+        ByteBuffer buf = ByteBuffer.allocate(payloadSize + 5);
+        buf.put((byte) 0);
+        buf.putInt(payloadSize);
+        buf.put(byteResponse);
+
+        return buf;
+    }
 }
