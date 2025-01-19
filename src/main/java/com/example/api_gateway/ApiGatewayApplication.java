@@ -15,6 +15,7 @@ import org.springframework.core.io.buffer.DataBufferUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.IOException;
 import java.util.Arrays;
 
 @SpringBootApplication
@@ -61,9 +62,9 @@ public class ApiGatewayApplication extends MyGrpcServiceGrpc.MyGrpcServiceImplBa
 									return Mono.just(jsonRequest);
 								})
 								.addResponseHeader("Content-Type", "application/grpc")
-								.modifyResponseBody(DataBuffer.class, DataBuffer.class, (exchange, body) -> {
-									return Mono.just(body);
-								})
+//								.modifyResponseBody(DataBuffer.class, DataBuffer.class, (exchange, body) -> {
+//                                    return Mono.just(body);
+//								})
 						)
 						.uri("http://localhost:8088"))
 
