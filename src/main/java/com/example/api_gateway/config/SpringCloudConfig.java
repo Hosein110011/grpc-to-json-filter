@@ -6,7 +6,6 @@ import io.grpc.netty.shaded.io.netty.channel.ChannelInitializer;
 import io.grpc.netty.shaded.io.netty.handler.codec.http2.*;
 import io.netty.buffer.Unpooled;
 //import io.netty.channel.*;
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -29,6 +28,7 @@ public class SpringCloudConfig {
     @Bean
     public NettyServerCustomizer nettyServerCustomizer() {
         return server -> server.doOnConnection((connection -> {
+//            pipeline.addLast(new Http2InterceptorHandler(grpcRestConfig));
             connection.addHandlerLast(new Http2InterceptorHandler(grpcRestConfig));
 //                .doOnChannelInit((context, channel, address) -> {
 //            Http2Headers headers = new DefaultHttp2Headers();
