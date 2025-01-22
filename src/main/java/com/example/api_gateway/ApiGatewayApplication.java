@@ -33,43 +33,43 @@ public class ApiGatewayApplication extends MyGrpcServiceGrpc.MyGrpcServiceImplBa
 		return routeLocatorBuilder.routes()
 				// ----- Grpc to Rest -----
 
-//				.route("grpc-rest-route", r -> r
-//						.path("/example.MyGrpcService/testGateway")
-//						.filters(f -> f
-//								.removeRequestHeader("Content-Type")
-//								.setPath("/rest/test")
-//								.addRequestHeader("Content-Type", "application/json")
-//								.modifyRequestBody(DataBuffer.class, String.class, (exchange, body) -> {
-//
-//									byte[] bytes = new byte[body.readableByteCount()];
-//									body.read(bytes);
-//									DataBufferUtils.release(body);
-//
-//									byte[] actualMessage = Arrays.copyOfRange(bytes, 5, bytes.length);
-//
-//                                    TestRequest request = null;
-//                                    try {
-//                                        request = TestRequest.parseFrom(actualMessage);
-//                                    } catch (InvalidProtocolBufferException e) {
-//                                        throw new RuntimeException(e);
-//                                    }
-//
-//									String jsonRequest;
-//
-//                                    try {
-//                                        jsonRequest = JsonFormat.printer().print(request);
-//                                    } catch (InvalidProtocolBufferException e) {
-//                                        throw new RuntimeException(e);
-//                                    }
-//
-//									return Mono.just(jsonRequest);
+				.route("grpc-rest-route", r -> r
+						.path("/example.MyGrpcService/testGateway")
+						.filters(f -> f
+								.removeRequestHeader("Content-Type")
+								.setPath("/rest/test")
+								.addRequestHeader("Content-Type", "application/json")
+								.modifyRequestBody(DataBuffer.class, String.class, (exchange, body) -> {
+
+									byte[] bytes = new byte[body.readableByteCount()];
+									body.read(bytes);
+									DataBufferUtils.release(body);
+
+									byte[] actualMessage = Arrays.copyOfRange(bytes, 5, bytes.length);
+
+                                    TestRequest request = null;
+                                    try {
+                                        request = TestRequest.parseFrom(actualMessage);
+                                    } catch (InvalidProtocolBufferException e) {
+                                        throw new RuntimeException(e);
+                                    }
+
+									String jsonRequest;
+
+                                    try {
+                                        jsonRequest = JsonFormat.printer().print(request);
+                                    } catch (InvalidProtocolBufferException e) {
+                                        throw new RuntimeException(e);
+                                    }
+
+									return Mono.just(jsonRequest);
+								})
+								.addResponseHeader("Content-Type", "application/grpc")
+//								.modifyResponseBody(DataBuffer.class, DataBuffer.class, (exchange, body) -> {
+//                                    return Mono.just(body);
 //								})
-//								.addResponseHeader("Content-Type", "application/grpc")
-////								.modifyResponseBody(DataBuffer.class, DataBuffer.class, (exchange, body) -> {
-////                                    return Mono.just(body);
-////								})
-//						)
-//						.uri("http://localhost:8088"))
+						)
+						.uri("http://localhost:8088"))
 
 				// ----- Grpc to Grpc -----
 
