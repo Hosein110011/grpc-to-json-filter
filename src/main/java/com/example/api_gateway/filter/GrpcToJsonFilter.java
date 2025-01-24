@@ -5,10 +5,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
 import org.reactivestreams.Publisher;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -51,14 +47,17 @@ public class GrpcToJsonFilter implements GlobalFilter, Ordered {
                             ObjectMapper objectMapper = new ObjectMapper();
 
                             String prettyResp;
-                                    try {
-										Object jsonObject = objectMapper.readValue(bytes, Object.class);
-                                        prettyResp = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonObject);
-                                    } catch (JsonProcessingException e) {
-                                        throw new RuntimeException(e);
-                                    } catch (IOException e) {
-                                        throw new RuntimeException(e);
-                                    }
+
+                            try {
+                                Object jsonObject = objectMapper.readValue(bytes, Object.class);
+                                prettyResp = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(jsonObject);
+                            } catch (JsonProcessingException e) {
+                                throw new RuntimeException(e);
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+
+                            System.out.println("pretty : " + prettyResp);
 
                             TestResponse response;
 

@@ -12,21 +12,22 @@ import io.netty.handler.codec.http2.*;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
 @ChannelHandler.Sharable
-public class Http2StreamFrameToHttpObjectCodec extends MessageToMessageCodec<Http2StreamFrame, HttpObject> {
+public class CustomHttp2StreamFrameToHttpObjectCodec extends MessageToMessageCodec<Http2StreamFrame, HttpObject> {
     private static final AttributeKey<HttpScheme> SCHEME_ATTR_KEY = AttributeKey.valueOf(HttpScheme.class, "STREAMFRAMECODEC_SCHEME");
     private final boolean isServer;
     private final boolean validateHeaders;
 
-    public Http2StreamFrameToHttpObjectCodec(boolean isServer, boolean validateHeaders) {
+    public CustomHttp2StreamFrameToHttpObjectCodec(boolean isServer, boolean validateHeaders) {
         this.isServer = isServer;
         this.validateHeaders = validateHeaders;
     }
 
-    public Http2StreamFrameToHttpObjectCodec(boolean isServer) {
+    public CustomHttp2StreamFrameToHttpObjectCodec(boolean isServer) {
         this(isServer, true);
     }
 
@@ -78,7 +79,10 @@ public class Http2StreamFrameToHttpObjectCodec extends MessageToMessageCodec<Htt
     private void encodeLastContent(LastHttpContent last, List<Object> out) {
         boolean needFiller = !(last instanceof FullHttpMessage) && last.trailingHeaders().isEmpty();
         if (last.content().isReadable() || needFiller) {
-            out.add(new DefaultHttp2DataFrame(last.content().retain(), last.trailingHeaders().isEmpty()));
+            out.add(new DefaultHttp2DataFrame(last.content().retain(), !last.trailingHeaders().isEmpty()));
+            Http2Headers headers = new DefaultHttp2Headers();
+            headers.add("grpc-status","0");
+            out.add(new DefaultHttp2HeadersFrame(headers, true));
         }
 
         if (!last.trailingHeaders().isEmpty()) {
@@ -118,11 +122,12 @@ public class Http2StreamFrameToHttpObjectCodec extends MessageToMessageCodec<Htt
 
         if (obj instanceof LastHttpContent) {
             LastHttpContent last = (LastHttpContent)obj;
-            Http2Headers headers = new DefaultHttp2Headers();
-            headers.add("grpc-status", "0");
-            Http2StreamFrame frame = new DefaultHttp2HeadersFrame(headers, true);
-            ctx.writeAndFlush(frame);
-//            this.encodeLastContent(last, out);
+//            Http2Headers headers = new DefaultHttp2Headers();
+//            headers.add("grpc-status", "0");
+//            System.out.println("last http content : " + last.trailingHeaders());
+//            Http2StreamFrame frame = new DefaultHttp2HeadersFrame(headers, true);
+//            ctx.writeAndFlush(frame);
+            this.encodeLastContent(last, out);
         } else if (obj instanceof HttpContent) {
             HttpContent cont = (HttpContent)obj;
             out.add(new DefaultHttp2DataFrame(cont.content().retain(), false));
